@@ -22,7 +22,7 @@ if (removeStatButton) removeStatButton.addEventListener('click', removeStatistic
 // Инициализация FAPI
 function initFAPI() {
     if (typeof FAPI === 'undefined' || !FAPI.Util) {
-        updateStatus('FAPI не загружен', 'error');
+        console.log('[error] FAPI не загружен');
         return false;
     }
 
@@ -32,11 +32,11 @@ function initFAPI() {
         rParams["api_server"] || 'https://api.ok.ru',
         rParams["apiconnection"] || 'apiconnection',
         function() {
-            updateStatus('FAPI успешно инициализирован', 'success');
+            console.log('[success] FAPI успешно инициализирован');
             isFAPILoaded = true;
         },
         function(error) {
-            updateStatus(`Ошибка инициализации FAPI: ${error}`, 'error');
+            console.log(`[error] Ошибка инициализации FAPI: ${error}`);
         }
     );
     
@@ -46,26 +46,26 @@ function initFAPI() {
 // Показать рекламу
 function showAd(adType) {
     if (!isFAPILoaded) {
-        updateStatus(`Mock: Показ ${adType} рекламы`, 'warning');
+        console.log(`[warning] Mock: Показ ${adType} рекламы`);
         return;
     }
 
     FAPI.UI.showAd({
         adType: adType,
         callbacks: {
-            onAdLoaded: () => updateStatus(`Реклама ${adType} загружена`, 'info'),
+            onAdLoaded: () => console.log(`[info] Реклама ${adType} загружена`),
             onAdShown: () => {
                 lastAdTime = Date.now();
-                updateStatus(`Реклама ${adType} показана`, 'success');
+                console.log(`[success] Реклама ${adType} показана`);
             },
             onAdClosed: (watched) => {
                 if (adType === 'reward') {
-                    updateStatus(watched ? 'Награда получена!' : 'Реклама закрыта до завершения', watched ? 'success' : 'warning');
+                    console.log(watched ? '[success] Награда получена!' : '[warning] Реклама закрыта до завершения');
                 } else {
-                    updateStatus(`Реклама ${adType} закрыта`, 'info');
+                    console.log(`[info] Реклама ${adType} закрыта`);
                 }
             },
-            onAdError: (error) => updateStatus(`Ошибка ${adType}: ${error}`, 'error')
+            onAdError: (error) => console.log(`[error] Ошибка ${adType}: ${error}`)
         }
     });
 }
@@ -74,29 +74,29 @@ function showAd(adType) {
 function saveGameData() {
     const gameData = { timestamp: Date.now(), data: "Пример данных для сохранения" };
     if (!isFAPILoaded) {
-        updateStatus(`Mock: Данные сохранены: ${JSON.stringify(gameData)}`, 'warning');
+        console.log(`[warning] Mock: Данные сохранены: ${JSON.stringify(gameData)}`);
         return;
     }
     FAPI.Storage.set('game_data', JSON.stringify(gameData), (result) => {
-        updateStatus(result ? 'Данные успешно сохранены' : 'Ошибка сохранения данных', result ? 'success' : 'error');
+        console.log(result ? '[success] Данные успешно сохранены' : '[error] Ошибка сохранения данных');
     });
 }
 
 function loadGameData() {
     if (!isFAPILoaded) {
-        updateStatus('Mock: Загрузка тестовых данных', 'warning');
+        console.log('[warning] Mock: Загрузка тестовых данных');
         return;
     }
     FAPI.Storage.get('game_data', (data) => {
         if (!data) {
-            updateStatus('Сохраненные данные не найдены', 'warning');
+            console.log('[warning] Сохраненные данные не найдены');
             return;
         }
         try {
             const parsedData = JSON.parse(data);
-            updateStatus(`Данные загружены: ${JSON.stringify(parsedData)}`, 'success');
+            console.log(`[success] Данные загружены: ${JSON.stringify(parsedData)}`);
         } catch (e) {
-            updateStatus(`Ошибка чтения данных: ${e}`, 'error');
+            console.log(`[error] Ошибка чтения данных: ${e}`);
         }
     });
 }
@@ -105,24 +105,16 @@ function loadGameData() {
 function sendStatistic() {
     const statData = { event: 'button_click', action: 'add_stat', timestamp: Date.now() };
     if (!isFAPILoaded) {
-        updateStatus(`Mock: Статистика отправлена: ${JSON.stringify(statData)}`, 'warning');
+        console.log(`[warning] Mock: Статистика отправлена: ${JSON.stringify(statData)}`);
         return;
     }
     FAPI.Statistics.send(statData, (result) => {
-        updateStatus(result ? 'Статистика успешно отправлена' : 'Ошибка отправки статистики', result ? 'success' : 'error');
+        console.log(result ? '[success] Статистика успешно отправлена' : '[error] Ошибка отправки статистики');
     });
 }
 
 function removeStatistic() {
-    updateStatus('Удаление статистики не поддерживается в API', 'warning');
-}
-
-// Вспомогательные функции
-function updateStatus(message, type = 'info') {
-    if (!statusElement) return;
-    statusElement.textContent = message;
-    statusElement.style.color = type === 'error' ? '#ff0000' : type === 'success' ? '#00aa00' : type === 'warning' ? '#ffaa00' : '#000000';
-    console.log(`[${type}] ${message}`);
+    console.log('[warning] Удаление статистики не поддерживается в API');
 }
 
 // Глобальный колбэк для FAPI
@@ -134,7 +126,7 @@ window.API_callback = function(method, result, data) {
 if (typeof FAPI !== 'undefined') {
     initFAPI();
 } else {
-    updateStatus('Ожидание загрузки FAPI...', 'info');
+    console.log('[info] Ожидание загрузки FAPI...');
     const checkFAPI = setInterval(() => {
         if (typeof FAPI !== 'undefined') {
             clearInterval(checkFAPI);
@@ -144,7 +136,7 @@ if (typeof FAPI !== 'undefined') {
     setTimeout(() => {
         if (!isFAPILoaded) {
             clearInterval(checkFAPI);
-            updateStatus('FAPI не загружен, используется mock-режим', 'warning');
+            console.log('[warning] FAPI не загружен, используется mock-режим');
         }
     }, 5000);
 }
