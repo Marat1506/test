@@ -1,8 +1,7 @@
-// Состояние приложения
+
 let isFAPILoaded = false;
 let lastAdTime = 0;
 
-// Элементы интерфейса
 const statusElement = document.getElementById('statusMessage');
 const interstitialButton = document.getElementById('showInterstitial');
 const rewardButton = document.getElementById('showReward');
@@ -11,15 +10,14 @@ const loadButton = document.getElementById('loadGame');
 const addStatButton = document.getElementById('addStat');
 const removeStatButton = document.getElementById('removeStat');
 
-// Навешивание обработчиков
-if (interstitialButton) interstitialButton.addEventListener('click', () => showAd('interstitial'));
-if (rewardButton) rewardButton.addEventListener('click', () => showAd('reward'));
-if (saveButton) saveButton.addEventListener('click', saveGameData);
-if (loadButton) loadButton.addEventListener('click', loadGameData);
-if (addStatButton) addStatButton.addEventListener('click', sendStatistic);
-if (removeStatButton) removeStatButton.addEventListener('click', removeStatistic);
+interstitialButton.addEventListener('click', () => showAd('interstitial'));
+rewardButton.addEventListener('click', () => showAd('reward'));
+saveButton.addEventListener('click', save);
+loadButton.addEventListener('click', load);
+addStatButton.addEventListener('click', sendStatistic);
+removeStatButton.addEventListener('click', removeStatistic);
 
-// Инициализация FAPI
+
 function initFAPI() {
     if (typeof FAPI === 'undefined' || !FAPI.Util) {
         console.log('[error] FAPI не загружен');
@@ -43,7 +41,7 @@ function initFAPI() {
     return true;
 }
 
-// Показать рекламу
+
 function showAd(adType) {
     if (!isFAPILoaded) {
         console.log(`[warning] Mock: Показ ${adType} рекламы`);
@@ -70,8 +68,8 @@ function showAd(adType) {
     });
 }
 
-// Работа с сохранениями
-function saveGameData() {
+
+function save() {
     const gameData = { timestamp: Date.now(), data: "Пример данных для сохранения" };
     if (!isFAPILoaded) {
         console.log(`[warning] Mock: Данные сохранены: ${JSON.stringify(gameData)}`);
@@ -82,26 +80,11 @@ function saveGameData() {
     });
 }
 
-function loadGameData() {
-    if (!isFAPILoaded) {
-        console.log('[warning] Mock: Загрузка тестовых данных');
-        return;
-    }
-    FAPI.Storage.get('game_data', (data) => {
-        if (!data) {
-            console.log('[warning] Сохраненные данные не найдены');
-            return;
-        }
-        try {
-            const parsedData = JSON.parse(data);
-            console.log(`[success] Данные загружены: ${JSON.stringify(parsedData)}`);
-        } catch (e) {
-            console.log(`[error] Ошибка чтения данных: ${e}`);
-        }
-    });
+function load() {
+    console.log("load")
 }
 
-// Работа со статистикой
+
 function sendStatistic() {
     const statData = { event: 'button_click', action: 'add_stat', timestamp: Date.now() };
     if (!isFAPILoaded) {
@@ -114,15 +97,13 @@ function sendStatistic() {
 }
 
 function removeStatistic() {
-    console.log('[warning] Удаление статистики не поддерживается в API');
+    console.log(' Удаление статистики ');
 }
 
-// Глобальный колбэк для FAPI
 window.API_callback = function(method, result, data) {
     console.log("API_callback:", method, result, data);
 };
 
-// Инициализация при загрузке
 if (typeof FAPI !== 'undefined') {
     initFAPI();
 } else {
