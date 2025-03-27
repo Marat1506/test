@@ -29,6 +29,7 @@ function initAdapter() {
     }
 
     adapter = new OkAdapter();
+    console.log("adapter2 = ", adapter)
     
     adapter.init().then(() => {
         isAdapterReady = true;
@@ -66,6 +67,7 @@ async function save() {
         console.log("save (mock)");
         return;
     }
+    console.log("adapter = ", adapter)
 
     try {
         const data = {  };
