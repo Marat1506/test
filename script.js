@@ -70,14 +70,7 @@ function showAd(adType) {
 
 
 function save() {
-    const gameData = { timestamp: Date.now(), data: "Пример данных для сохранения" };
-    if (!isFAPILoaded) {
-        console.log(`[warning] Mock: Данные сохранены: ${JSON.stringify(gameData)}`);
-        return;
-    }
-    FAPI.Storage.set('game_data', JSON.stringify(gameData), (result) => {
-        console.log(result ? '[success] Данные успешно сохранены' : '[error] Ошибка сохранения данных');
-    });
+    console.log("save")
 }
 
 function load() {
@@ -86,14 +79,7 @@ function load() {
 
 
 function sendStatistic() {
-    const statData = { event: 'button_click', action: 'add_stat', timestamp: Date.now() };
-    if (!isFAPILoaded) {
-        console.log(`[warning] Mock: Статистика отправлена: ${JSON.stringify(statData)}`);
-        return;
-    }
-    FAPI.Statistics.send(statData, (result) => {
-        console.log(result ? '[success] Статистика успешно отправлена' : '[error] Ошибка отправки статистики');
-    });
+    console.log("Сохранение статистики")
 }
 
 function removeStatistic() {
