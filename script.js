@@ -6,6 +6,7 @@ let isAdapterReady = false;
 let lastAdTime = 0;
 let adapter = null;
 
+// Получаем элементы UI
 const statusElement = document.getElementById('statusMessage');
 const interstitialButton = document.getElementById('showInterstitial');
 const rewardButton = document.getElementById('showReward');
@@ -14,36 +15,82 @@ const loadButton = document.getElementById('loadGame');
 const addStatButton = document.getElementById('addStat');
 const removeStatButton = document.getElementById('removeStat');
 
-
-interstitialButton?.addEventListener('click', () => showAd('interstitial'));
-rewardButton?.addEventListener('click', () => showAd('reward'));
-saveButton?.addEventListener('click', save);
-loadButton?.addEventListener('click', load);
-addStatButton?.addEventListener('click', sendStatistic);
-removeStatButton?.addEventListener('click', removeStatistic);
-
-function initAdapter() {
-    if (typeof FAPI === 'undefined' || !FAPI.Util) {
-        console.log('[error] FAPI не загружен');
-        return false;
-    }
-
-    adapter = new OkAdapter();
-    console.log("adapter2 = ", adapter)
-    
-    adapter.init().then(() => {
+// Инициализация адаптера
+async function initAdapter() {
+    try {
+        // Ждем полной загрузки FAPI
+        await waitForFAPI();
+        
+        // Создаем экземпляр адаптера
+        adapter = new OkAdapter();
+        console.log("Adapter created:", adapter);
+        
+        // Инициализируем адаптер
+        await adapter.init();
         isAdapterReady = true;
         console.log('[success] Адаптер успешно инициализирован');
-    }).catch((error) => {
-        console.log(`[error] Ошибка инициализации адаптера: ${error}`);
-    });
-    
-    return true;
+        
+        // Включаем кнопки
+        enableButtons();
+        
+        return true;
+    } catch (error) {
+        console.error('Ошибка инициализации адаптера:', error);
+        return false;
+    }
 }
 
+// Функция ожидания загрузки FAPI
+function waitForFAPI() {
+    return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+            if (typeof FAPI !== 'undefined' && FAPI.Util) {
+                clearInterval(checkInterval);
+                resolve(true);
+            }
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            reject(new Error('Timeout waiting for FAPI'));
+        }, 5000);
+    });
+}
+
+// Включаем кнопки после инициализации
+function enableButtons() {
+    interstitialButton?.removeAttribute('disabled');
+    rewardButton?.removeAttribute('disabled');
+    saveButton?.removeAttribute('disabled');
+    loadButton?.removeAttribute('disabled');
+    addStatButton?.removeAttribute('disabled');
+    removeStatButton?.removeAttribute('disabled');
+}
+
+// Отключаем кнопки до инициализации
+function disableButtons() {
+    interstitialButton?.setAttribute('disabled', 'true');
+    rewardButton?.setAttribute('disabled', 'true');
+    saveButton?.setAttribute('disabled', 'true');
+    loadButton?.setAttribute('disabled', 'true');
+    addStatButton?.setAttribute('disabled', 'true');
+    removeStatButton?.setAttribute('disabled', 'true');
+}
+
+// Инициализация обработчиков событий
+function setupEventListeners() {
+    interstitialButton?.addEventListener('click', () => showAd('interstitial'));
+    rewardButton?.addEventListener('click', () => showAd('reward'));
+    saveButton?.addEventListener('click', save);
+    loadButton?.addEventListener('click', load);
+    addStatButton?.addEventListener('click', sendStatistic);
+    removeStatButton?.addEventListener('click', removeStatistic);
+}
+
+// Показ рекламы
 async function showAd(adType) {
     if (!isAdapterReady || !adapter) {
-        console.log(`[warning] Адаптер не готов: Показ ${adType} рекламы`);
+        console.warn(`Адаптер не готов: Показ ${adType} рекламы`);
         return;
     }
 
@@ -58,29 +105,30 @@ async function showAd(adType) {
             console.log(`[success] Реклама ${adType} показана`);
         }
     } catch (error) {
-        console.log(`[error] Ошибка ${adType}: ${error}`);
+        console.error(`Ошибка ${adType}:`, error);
     }
 }
 
+// Сохранение данных
 async function save() {
     if (!isAdapterReady || !adapter) {
-        console.log("save (mock)");
+        console.warn("Адаптер не готов для сохранения");
         return;
     }
-    console.log("adapter = ", adapter)
 
     try {
-        const data = {  };
+        const data = { /* ваши данные */ };
         await adapter.save(data);
         console.log("[success] Данные сохранены");
     } catch (error) {
-        console.log(`[error] Ошибка сохранения: ${error}`);
+        console.error("Ошибка сохранения:", error);
     }
 }
 
+// Загрузка данных
 async function load() {
     if (!isAdapterReady || !adapter) {
-        console.log("load (mock)");
+        console.warn("Адаптер не готов для загрузки");
         return null;
     }
 
@@ -89,11 +137,12 @@ async function load() {
         console.log("[success] Данные загружены", data);
         return data;
     } catch (error) {
-        console.log(`[error] Ошибка загрузки: ${error}`);
+        console.error("Ошибка загрузки:", error);
         return null;
     }
 }
 
+// Статистика
 function sendStatistic() {
     if (isAdapterReady && adapter) {
         adapter.reachGoal('stat_added');
@@ -108,25 +157,17 @@ function removeStatistic() {
     console.log('Удаление статистики');
 }
 
-window.API_callback = function(method, result, data) {
-    console.log("API_callback:", method, result, data);
-};
-
-if (typeof FAPI !== 'undefined') {
-    initAdapter();
-} else {
-    console.log('[info] Ожидание загрузки FAPI...');
-    const checkFAPI = setInterval(() => {
-        if (typeof FAPI !== 'undefined') {
-            clearInterval(checkFAPI);
-            initAdapter();
-        }
-    }, 100);
+// Инициализация приложения
+async function initializeApp() {
+    disableButtons();
+    setupEventListeners();
     
-    setTimeout(() => {
-        if (!isAdapterReady) {
-            clearInterval(checkFAPI);
-            console.log('[warning] FAPI не загружен');
-        }
-    }, 5000);
+    try {
+        await initAdapter();
+    } catch (error) {
+        console.error('Ошибка инициализации приложения:', error);
+    }
 }
+
+// Запускаем приложение
+initializeApp();
