@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Кнопки управления</title>
     <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="//api.ok.ru/js/fapi5.js" defer="defer"></script>
 </head>
 <body>
     <div class="buttons-container">
@@ -25,7 +26,12 @@
         </div>
     </div>
 
-    <script src="https://api.ok.ru/js/fapi.js"></script>
+    <script>
+        console.log("Загрузка FAPI...");
+        setTimeout(() => {
+            console.log("FAPI:", typeof FAPI !== "undefined" ? "Доступен" : "Не найден");
+        }, 3000);
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
