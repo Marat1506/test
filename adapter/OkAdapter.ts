@@ -52,6 +52,7 @@ export default class OkAdapter extends Adapter {
     private initFapi(): Promise<any> {
         return new Promise((resolve: any) => {
             this.fapi.init(this.params["api_server"], this.params["apiconnection"], () => {
+                console.log("ererrdscds")
                 this.__loaded = true;
                 resolve();
             }, () => {
