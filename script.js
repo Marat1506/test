@@ -1,143 +1,193 @@
-// Инициализация FAPI
-let isFAPILoaded = false;
+// Конфигурация приложения
+// const OK_CONFIG = {
+//     app_id: 512002514780,
+//     app_key: 'CNFQFLLGDIHBABABA'
+// };
 
+// Состояние приложения
+let isFAPILoaded = false;
+let lastAdTime = 0;
+
+// Элементы интерфейса
+const statusElement = document.getElementById('statusMessage');
+const buttons = {
+    interstitial: document.getElementById('showInterstitial'),
+    reward: document.getElementById('showReward'),
+    save: document.getElementById('saveGame'),
+    load: document.getElementById('loadGame'),
+    addStat: document.getElementById('addStat'),
+    removeStat: document.getElementById('removeStat')
+};
+
+// Инициализация FAPI
 function initFAPI() {
     if (typeof FAPI === 'undefined' || !FAPI.Util) {
-        console.warn("FAPI не загружен");
+        updateStatus('FAPI не загружен', 'error');
         return false;
     }
 
     const rParams = FAPI.Util.getRequestParameters();
+    
     FAPI.init(
-        rParams["api_server"],
-        rParams["apiconnection"],
+        rParams["api_server"] || 'https://api.ok.ru',
+        rParams["apiconnection"] || 'apiconnection',
         function() {
-            console.log("FAPI успешно инициализирован");
+            updateStatus('FAPI успешно инициализирован', 'success');
             isFAPILoaded = true;
+            setupButtons();
         },
         function(error) {
-            console.error("Ошибка инициализации FAPI:", error);
+            updateStatus(`Ошибка инициализации FAPI: ${error}`, 'error');
         }
     );
+    
     return true;
 }
 
-// Обработчики кнопок
-function setupButtonHandlers() {
-    // Получаем элементы кнопок
-    const elements = {
-        interstitial: document.getElementById('showInterstitial'),
-        reward: document.getElementById('showReward'),
-        save: document.getElementById('saveGame'),
-        load: document.getElementById('loadGame'),
-        addStat: document.getElementById('addStat'),
-        removeStat: document.getElementById('removeStat')
-    };
-
-    // Обработчики
-    elements.interstitial.addEventListener('click', showInterstitial);
-    elements.reward.addEventListener('click', showReward);
-    elements.save.addEventListener('click', saveGame);
-    elements.load.addEventListener('click', loadGame);
-    elements.addStat.addEventListener('click', addStatistic);
-    elements.removeStat.addEventListener('click', removeStatistic);
-}
-
-// Функции для работы с FAPI
-function showInterstitial() {
-    if (!isFAPILoaded) {
-        console.log("Mock: Показ interstitial рекламы");
-        return;
-    }
-
-    FAPI.Ads.showBanner({
-        format: 'interstitial',
-        onClose: () => console.log("Interstitial закрыт"),
-        onError: (error) => console.error("Ошибка interstitial:", error)
-    });
-}
-
-function showReward() {
-    if (!isFAPILoaded) {
-        console.log("Mock: Показ reward рекламы");
-        return;
-    }
-
-    FAPI.Ads.showRewardedVideo({
-        onClose: (watched) => console.log(
-            watched ? "Reward просмотрен" : "Reward не досмотрен"
-        ),
-        onError: (error) => console.error("Ошибка reward:", error)
-    });
-}
-
-function saveGame() {
-    const gameData = {
-        level: 1,
-        score: 0,
-        timestamp: Date.now()
-    };
-
-    if (!isFAPILoaded) {
-        console.log("Mock: Сохранение игры", gameData);
-        return;
-    }
-
-    FAPI.Storage.set('game_save', JSON.stringify(gameData), (result) => {
-        console.log(result ? "Сохранено успешно" : "Ошибка сохранения");
-    });
-}
-
-function loadGame() {
-    if (!isFAPILoaded) {
-        console.log("Mock: Загрузка игры");
-        return;
-    }
-
-    FAPI.Storage.get('game_save', (data) => {
-        if (data) {
-            try {
-                console.log("Загружены данные:", JSON.parse(data));
-            } catch (e) {
-                console.error("Ошибка парсинга данных:", e);
+// Настройка обработчиков кнопок
+function setupButtons() {
+    Object.keys(buttons).forEach(key => {
+        buttons[key].addEventListener('click', () => {
+            switch(key) {
+                case 'interstitial': showAd('interstitial'); break;
+                case 'reward': showAd('reward'); break;
+                case 'save': saveGameData(); break;
+                case 'load': loadGameData(); break;
+                case 'addStat': sendStatistic(); break;
+                case 'removeStat': removeStatistic(); break;
             }
-        } else {
-            console.warn("Данные не найдены");
+        });
+    });
+}
+
+// Показать рекламу (универсальный метод)
+function showAd(adType) {
+    if (!isFAPILoaded) {
+        updateStatus(`Mock: Показ ${adType} рекламы`, 'warning');
+        return;
+    }
+
+    FAPI.UI.showAd({
+        adType: adType,
+        callbacks: {
+            onAdLoaded: () => updateStatus(`Реклама ${adType} загружена`, 'info'),
+            onAdShown: () => {
+                lastAdTime = Date.now();
+                updateStatus(`Реклама ${adType} показана`, 'success');
+            },
+            onAdClosed: (watched) => {
+                if (adType === 'reward') {
+                    updateStatus(watched ? 'Награда получена!' : 'Реклама закрыта до завершения', 
+                               watched ? 'success' : 'warning');
+                } else {
+                    updateStatus(`Реклама ${adType} закрыта`, 'info');
+                }
+            },
+            onAdError: (error) => updateStatus(`Ошибка ${adType}: ${error}`, 'error')
         }
     });
 }
 
-function addStatistic() {
-    const statData = {
-        event: 'button_click',
-        button: 'add_stat',
-        timestamp: Date.now()
+// Работа с сохранениями
+function saveGameData() {
+    const gameData = {
+        timestamp: Date.now(),
+        data: "Пример данных для сохранения"
     };
-
+    
     if (!isFAPILoaded) {
-        console.log("Mock: Отправка статистики", statData);
+        updateStatus(`Mock: Данные сохранены: ${JSON.stringify(gameData)}`, 'warning');
         return;
     }
+    
+    FAPI.Storage.set('game_data', JSON.stringify(gameData), (result) => {
+        updateStatus(result ? 'Данные успешно сохранены' : 'Ошибка сохранения данных',
+                    result ? 'success' : 'error');
+    });
+}
 
+function loadGameData() {
+    if (!isFAPILoaded) {
+        updateStatus('Mock: Загрузка тестовых данных', 'warning');
+        return;
+    }
+    
+    FAPI.Storage.get('game_data', (data) => {
+        if (!data) {
+            updateStatus('Сохраненные данные не найдены', 'warning');
+            return;
+        }
+        
+        try {
+            const parsedData = JSON.parse(data);
+            updateStatus(`Данные загружены: ${JSON.stringify(parsedData)}`, 'success');
+        } catch (e) {
+            updateStatus(`Ошибка чтения данных: ${e}`, 'error');
+        }
+    });
+}
+
+// Работа со статистикой
+function sendStatistic() {
+    const statData = {
+        event: 'button_click',
+        action: 'add_stat',
+        timestamp: Date.now()
+    };
+    
+    if (!isFAPILoaded) {
+        updateStatus(`Mock: Статистика отправлена: ${JSON.stringify(statData)}`, 'warning');
+        return;
+    }
+    
     FAPI.Statistics.send(statData, (result) => {
-        console.log(result ? "Статистика отправлена" : "Ошибка отправки");
+        updateStatus(result ? 'Статистика успешно отправлена' : 'Ошибка отправки статистики',
+                    result ? 'success' : 'error');
     });
 }
 
 function removeStatistic() {
-    console.log("Удаление статистики не поддерживается в API");
+    updateStatus('Удаление статистики не поддерживается в API', 'warning');
 }
 
-// Инициализация
-if (initFAPI()) {
-    // Если FAPI загружен, ждем его инициализации
-    const checkInit = setInterval(() => {
-        if (isFAPILoaded) {
-            clearInterval(checkInit);
-            setupButtonHandlers();
+// Вспомогательные функции
+function updateStatus(message, type = 'info') {
+    if (!statusElement) return;
+    
+    statusElement.textContent = message;
+    statusElement.style.color = 
+        type === 'error' ? '#ff0000' :
+        type === 'success' ? '#00aa00' :
+        type === 'warning' ? '#ffaa00' : '#000000';
+    
+    console.log(`[${type}] ${message}`);
+}
+
+// Глобальный колбэк для FAPI
+window.API_callback = function(method, result, data) {
+    console.log("API_callback:", method, result, data);
+};
+
+// Инициализация при загрузке
+if (typeof FAPI !== 'undefined') {
+    initFAPI();
+} else {
+    updateStatus('Ожидание загрузки FAPI...', 'info');
+    
+    // Проверяем загрузку FAPI с таймаутом
+    const checkFAPI = setInterval(() => {
+        if (typeof FAPI !== 'undefined') {
+            clearInterval(checkFAPI);
+            initFAPI();
         }
     }, 100);
-} else {
-    // Если FAPI не загружен, сразу настраиваем кнопки с мок-функциями
-    setupButtonHandlers();
+    
+    // Таймаут на загрузку FAPI (5 сек)
+    setTimeout(() => {
+        if (!isFAPILoaded) {
+            clearInterval(checkFAPI);
+            updateStatus('FAPI не загружен, используется mock-режим', 'warning');
+            setupButtons();
+        }
+    }, 5000);
 }
